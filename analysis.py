@@ -9,16 +9,16 @@ from tkinter import *
 from collections import Counter
 from visualizing import show_bar_chart, show_line_chart
 from config import (
-                    PRIMARY_COLOR,
-                    SECONDARY_COLOR,
-                    TERTIARY_COLOR,
-                    EXCLUDED_MEMBERS,
-                    EXCLUDED_WORDS
-                    )
+    PRIMARY_COLOR,
+    SECONDARY_COLOR,
+    TERTIARY_COLOR,
+    EXCLUDED_MEMBERS,
+    EXCLUDED_WORDS
+)
 root = Tk()
 root.withdraw()
 
-folder = filedialog.askdirectory(title="Select Folder")
+folder = '/home/maxim/fb-messages/inbox/'
 folder_name = os.path.basename(os.path.normpath(folder)).split("_")[0]
 
 
@@ -27,7 +27,7 @@ def get_textual_messages():
     x = 0
     for file in os.listdir(folder):
         if file.endswith(".json"):
-            file_path = os.path.realpath(folder) + "\\" + str(file)
+            file_path = os.path.realpath(folder) + "/" + str(file)
             with open(file_path, "r") as read_file:
                 data = json.load(read_file)
             for message in data['messages']:
@@ -44,22 +44,36 @@ def get_textual_messages():
     return messages
 
 
-def get_all_messages():
+def get_all_messages(date_range=False, start=None, end=None):
     messages = {}
     x = 0
-    for file in os.listdir(folder):
-        if file.endswith(".json"):
-            file_path = os.path.realpath(folder) + "\\" + str(file)
-            with open(file_path, "r") as read_file:
-                data = json.load(read_file)
-            for message in data['messages']:
-                message_timestamp = message['timestamp_ms']
 
-                message_sender = message['sender_name']
+    if date_range:
+        start_datetime = datetime.strptime(start, '%b %d %Y %I:%M%p')
+        start_datetime_timestamp = int(start_datetime.replace(
+            tzinfo=timezone.utc).timestamp()) * 1000
 
-                message_tuple = message_timestamp, message_sender
-                messages[x] = message_tuple
-                x += 1
+        end_datetime = datetime.strptime(end, '%b %d %Y %I:%M%p')
+        end_datetime_timestamp = int(end_datetime.replace(
+            tzinfo=timezone.utc).timestamp()) * 1000
+
+    for sub_folder in os.listdir(folder):
+        for file in os.listdir(os.path.realpath(folder) + "/" + sub_folder):
+            if file.endswith(".json"):
+                file_path = os.path.realpath(
+                    folder) + "/" + sub_folder + "/" + str(file)
+                with open(file_path, "r") as read_file:
+                    data = json.load(read_file)
+                for message in data['messages']:
+                    message_timestamp = message['timestamp_ms']
+                    if (date_range and start_datetime_timestamp > message_timestamp or message_timestamp > end_datetime_timestamp):
+                        continue
+
+                    message_sender = message['sender_name']
+
+                    message_tuple = message_timestamp, message_sender
+                    messages[x] = message_tuple
+                    x += 1
     return messages
 
 
@@ -309,7 +323,7 @@ def find_average_message_length_for_each_member(date_range=False, start=None, en
 
 
 def message_count_by_month(date_range=False, start=None, end=None):
-    messages = get_all_messages()
+    messages = get_all_messages(date_range, start, end)
     month_list = []
 
     if date_range:
@@ -320,6 +334,10 @@ def message_count_by_month(date_range=False, start=None, end=None):
         end_datetime = datetime.strptime(end, '%b %d %Y %I:%M%p')
         end_datetime_timestamp = int(end_datetime.replace(
             tzinfo=timezone.utc).timestamp()) * 1000
+
+    if messages == {}:
+        print("No messages found")
+        return
 
     for x in messages:
         if date_range:
@@ -374,4 +392,3 @@ def message_count_by_month(date_range=False, start=None, end=None):
     values = month_counts
     show_bar_chart(keys, values, PRIMARY_COLOR,
                    SECONDARY_COLOR, TERTIARY_COLOR, chart_title)
-
