@@ -67,8 +67,9 @@ def get_all_messages(date_range=False, start=None, end=None):
                     data = json.load(read_file)
                 for message in data['messages']:
                     message_timestamp = message['timestamp_ms']
-                    if (date_range and start_datetime_timestamp > message_timestamp or message_timestamp > end_datetime_timestamp):
-                        continue
+                    if date_range:
+                        if (start_datetime_timestamp > message_timestamp or message_timestamp > end_datetime_timestamp):
+                            continue
 
                     message_sender = message['sender_name']
 
