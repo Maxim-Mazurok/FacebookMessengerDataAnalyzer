@@ -23,25 +23,41 @@ folder = INBOX_FOLDER_PATH or filedialog.askdirectory(title="Select Folder")
 folder_name = os.path.basename(os.path.normpath(folder)).split("_")[0]
 
 
-def get_textual_messages():
+def get_textual_messages(date_range=False, start=None, end=None):
     messages = {}
     x = 0
-    for file in os.listdir(folder):
-        if file.endswith(".json"):
-            file_path = os.path.realpath(folder) + "/" + str(file)
-            with open(file_path, "r") as read_file:
-                data = json.load(read_file)
-            for message in data['messages']:
-                if 'content' in message:
-                    message_content = message['content']
 
-                    message_timestamp = message['timestamp_ms']
+    if date_range:
+        start_datetime = datetime.strptime(start, '%b %d %Y %I:%M%p')
+        start_datetime_timestamp = int(start_datetime.replace(
+            tzinfo=timezone.utc).timestamp()) * 1000
 
-                    message_sender = message['sender_name']
+        end_datetime = datetime.strptime(end, '%b %d %Y %I:%M%p')
+        end_datetime_timestamp = int(end_datetime.replace(
+            tzinfo=timezone.utc).timestamp()) * 1000
 
-                message_tuple = message_timestamp, message_sender, message_content
-                messages[x] = message_tuple
-                x += 1
+    for sub_folder in os.listdir(folder):
+        for file in os.listdir(os.path.realpath(folder) + "/" + sub_folder):
+            if file.endswith(".json"):
+                file_path = os.path.realpath(
+                    folder) + "/" + sub_folder + "/" + str(file)
+                with open(file_path, "r") as read_file:
+                    data = json.load(read_file)
+                for message in data['messages']:
+                    if 'content' in message:
+                        message_content = message['content']
+
+                        message_timestamp = message['timestamp_ms']
+
+                        if date_range:
+                            if (start_datetime_timestamp > message_timestamp or message_timestamp > end_datetime_timestamp):
+                                continue
+
+                        message_sender = message['sender_name']
+
+                    message_tuple = message_timestamp, message_sender, message_content
+                    messages[x] = message_tuple
+                    x += 1
     return messages
 
 
@@ -124,7 +140,7 @@ def view_total_messages_sent_by_each_member(date_range=False, start=None, end=No
                    SECONDARY_COLOR, TERTIARY_COLOR, chart_title)
 
 
-def view_total_characters_sent_by_each_member(date_range=False, start=None, end=None):
+def view_total_characters_sent_by_each_member(date_range=False, start=None, end=None, topN=50):
     messages = get_textual_messages()
     character_count_dict = {}
     if date_range:
@@ -162,8 +178,8 @@ def view_total_characters_sent_by_each_member(date_range=False, start=None, end=
     else:
         chart_title = "Number of Characters Sent in " + folder_name + '\n' + " All Time"
 
-    keys = formatted_count.keys()
-    values = formatted_count.values()
+    keys = list(formatted_count.keys())[:topN]
+    values = list(formatted_count.values())[:topN]
 
     show_bar_chart(keys, values, PRIMARY_COLOR,
                    SECONDARY_COLOR, TERTIARY_COLOR, chart_title)
@@ -265,7 +281,7 @@ def find_total_usage_for_each_specified_word(chosed_words, date_range=False, sta
                    SECONDARY_COLOR, TERTIARY_COLOR, chart_title)
 
 
-def find_average_message_length_for_each_member(date_range=False, start=None, end=None):
+def find_average_message_length_for_each_member(date_range=False, start=None, end=None, topN=50, minMessages=10):
     messages = get_textual_messages()
     character_count_dict = {}
     message_count_dict = {}
@@ -297,6 +313,9 @@ def find_average_message_length_for_each_member(date_range=False, start=None, en
         message_count_dict[y] += 1
     average_character_count = {}
     for c in character_count_dict.keys():
+        if message_count_dict[c] < minMessages:
+            continue
+
         average_key = c
         average_value = character_count_dict[c] / message_count_dict[c]
         average_value = round(average_value, 2)
@@ -305,7 +324,7 @@ def find_average_message_length_for_each_member(date_range=False, start=None, en
     formatted_count = {}
     for x in average_character_count.keys():
         name_split = x.split(" ")
-        formatted_name = name_split[0] + " " + name_split[-1][:1]
+        formatted_name = name_split[0] + " " + name_split[-1]
         formatted_count[formatted_name] = average_character_count[x]
 
     formatted_count = dict(sorted(formatted_count.items(),
@@ -317,8 +336,9 @@ def find_average_message_length_for_each_member(date_range=False, start=None, en
     else:
         chart_title = "Average Length of Message Per Person in " + \
             folder_name + '\n' + " All Time"
-    keys = formatted_count.keys()
-    values = formatted_count.values()
+
+    keys = list(formatted_count.keys())[:topN]
+    values = list(formatted_count.values())[:topN]
 
     show_bar_chart(keys, values, PRIMARY_COLOR,
                    SECONDARY_COLOR, TERTIARY_COLOR, chart_title)
