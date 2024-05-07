@@ -13,12 +13,13 @@ from config import (
     SECONDARY_COLOR,
     TERTIARY_COLOR,
     EXCLUDED_MEMBERS,
-    EXCLUDED_WORDS
+    EXCLUDED_WORDS,
+    INBOX_FOLDER_PATH
 )
 root = Tk()
 root.withdraw()
 
-folder = '/home/maxim/fb-messages/inbox/'
+folder = INBOX_FOLDER_PATH or filedialog.askdirectory(title="Select Folder")
 folder_name = os.path.basename(os.path.normpath(folder)).split("_")[0]
 
 
