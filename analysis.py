@@ -79,7 +79,7 @@ def get_all_messages(date_range=False, start=None, end=None):
     return messages
 
 
-def view_total_messages_sent_by_each_member(date_range=False, start=None, end=None):
+def view_total_messages_sent_by_each_member(date_range=False, start=None, end=None, topN=50):
     messages = get_all_messages()
     word_count_dict = {}
 
@@ -118,8 +118,8 @@ def view_total_messages_sent_by_each_member(date_range=False, start=None, end=No
     else:
         chart_title = "Number of Messages Sent in " + folder_name + '\n' + " All Time"
 
-    keys = formatted_count.keys()
-    values = formatted_count.values()
+    keys = list(formatted_count.keys())[:topN]
+    values = list(formatted_count.values())[:topN]
     show_bar_chart(keys, values, PRIMARY_COLOR,
                    SECONDARY_COLOR, TERTIARY_COLOR, chart_title)
 
